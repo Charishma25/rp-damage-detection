@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beam Damage Detection - Elite</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin:0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg,#4facfe,#00f2fe);
+}
+
+header {
+    text-align:center;
+    padding:20px;
+    color:white;
+    font-size:1.8rem;
+    font-weight:bold;
+}
+
+.container {
+    background:white;
+    margin:20px auto;
+    padding:20px;
+    border-radius:20px;
+    width:95%;
+    max-width:1200px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.2);
+}
+
+h2, h3 { text-align:center; }
+
+.beam {
+    width:100%;
+    height:120px;
+    background: linear-gradient(90deg,#ff758c,#ff7eb3);
+    position:relative;
+    margin:30px 0;
+    border-radius:15px;
+}
+
+.support {
+    width:40px;
+    height:40px;
+    background:#333;
+    position:absolute;
+    bottom:-40px;
+    border-radius:5px;
+}
+
+.left { left:0; }
+.right { right:0; }
+
+.accelerometer {
+    width:25px;
+    height:25px;
+    background:red;
+    border-radius:50%;
+    position:absolute;
+    top:-12px;
+    left:50%;
+    transform:translateX(-50%);
+    box-shadow:0 0 15px red;
+}
+
+.controls {
+    text-align:center;
+    margin:15px 0;
+}
+
+button, input {
+    padding:10px 15px;
+    margin:5px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    background:#4facfe;
+    color:white;
+    font-weight:bold;
+}
+
+button:hover { background:#007bff; }
+
+table {
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+
+th {
+    background:#4facfe;
+    color:white;
+    padding:10px;
+}
+
+td {
+    padding:8px;
+    border:1px solid #ddd;
+    text-align:center;
+}
+
+tr:nth-child(even) { background:#f2f2f2; }
+
+.warning {
+    background:#ff4d4d !important;
+    color:white;
+    font-weight:bold;
+}
+
+canvas { margin-top:20px; }
+
+/* Responsive */
+@media (max-width:768px) {
+    th, td { font-size:12px; }
+}
+
+@media (max-width:480px) {
+    .beam { height:80px; }
+    .support { width:25px; height:25px; bottom:-25px; }
+    .accelerometer { width:18px; height:18px; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+🚀 Beam Damage Detection Dashboard (Elite)
+</header>
+
+<div class="container">
+
+<h2>Beam Diagram</h2>
+<div class="beam">
+    <div class="support left"></div>
+    <div class="support right"></div>
+    <div class="accelerometer"></div>
+</div>
+
+<h3>Controls</h3>
+<div class="controls">
+    <input type="file" id="csvFile" accept=".csv">
+    <button onclick="generateData()">Generate 1000 Data</button>
+</div>
+
+<canvas id="chart"></canvas>
+
+<table id="dataTable">
+<thead>
+<tr>
+<th>Time</th>
+<th>Acceleration</th>
+<th>ΔA (%)</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+</div>
+
+<script>
+let chart;
+
+document.getElementById('csvFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(event) {
+        processCSV(event.target.result);
+    };
+
+    reader.readAsText(file);
+});
+
+function processCSV(data) {
+    const rows = data.split('\\n');
+    const tbody = document.querySelector(\"#dataTable tbody\");
+    tbody.innerHTML = \"\";
+
+    let times = [], acc = [], prevA = null;
+
+    rows.slice(1).forEach((row) => {
+        const cols = row.split(',');
+        if (cols.length < 2) return;
+
+        let T = parseFloat(cols[0]);
+        let A = parseFloat(cols[1]);
+
+        if (isNaN(T) || isNaN(A)) return;
+
+        let deltaA = prevA !== null ? Math.abs(((A - prevA) / prevA) * 100) : 0;
+
+        let tr = document.createElement('tr');
+        if (deltaA >= 20) tr.classList.add('warning');
+
+        tr.innerHTML = `
+            <td>${T}</td>
+            <td>${A.toFixed(2)}</td>
+            <td>${deltaA.toFixed(2)}</td>
+            <td>${deltaA >= 20 ? '⚠️ DAMAGE' : 'Normal'}</td>
+        `;
+
+        tbody.appendChild(tr);
+
+        times.push(T);
+        acc.push(A);
+        prevA = A;
+    });
+
+    drawChart(times, acc);
+}
+
+function generateData() {
+    let tbody = document.querySelector(\"#dataTable tbody\");
+    tbody.innerHTML = \"\";
+
+    let times = [], acc = [], prevA = 1;
+
+    for (let i = 0; i < 1000; i++) {
+        let A = prevA + (Math.random() * 1 - 0.5);
+        let deltaA = Math.abs(((A - prevA) / prevA) * 100);
+
+        let tr = document.createElement('tr');
+        if (deltaA >= 20) tr.classList.add('warning');
+
+        tr.innerHTML = `
+            <td>${i}</td>
+            <td>${A.toFixed(2)}</td>
+            <td>${deltaA.toFixed(2)}</td>
+            <td>${deltaA >= 20 ? '⚠️ DAMAGE' : 'Normal'}</td>
+        `;
+
+        tbody.appendChild(tr);
+
+        times.push(i);
+        acc.push(A);
+        prevA = A;
+    }
+
+    drawChart(times, acc);
+}
+
+function drawChart(times, acc) {
+    if (chart) chart.destroy();
+
+    chart = new Chart(document.getElementById('chart'), {
+        type: 'line',
+        data: {
+            labels: times,
+            datasets: [{
+                label: 'Acceleration vs Time',
+                data: acc,
+                borderWidth: 2,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { title: { display: true, text: 'Time' } },
+                y: { title: { display: true, text: 'Acceleration' } }
+            }
+        }
+    });
+}
+</script>
+
+</body>
+</html>
