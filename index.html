@@ -180,15 +180,16 @@ document.getElementById('csvFile').addEventListener('change', function(e) {
 });
 
 function processCSV(data) {
-    const rows = data.split('\\n');
-    const tbody = document.querySelector(\"#dataTable tbody\");
-    tbody.innerHTML = \"\";
+    const rows = data.trim().split('\n');
+    const tbody = document.querySelector("#dataTable tbody");
+    tbody.innerHTML = "";
 
     let times = [], acc = [], prevA = null;
 
     rows.slice(1).forEach((row) => {
+        if (!row.trim()) return;
+
         const cols = row.split(',');
-        if (cols.length < 2) return;
 
         let T = parseFloat(cols[0]);
         let A = parseFloat(cols[1]);
@@ -198,7 +199,10 @@ function processCSV(data) {
         let deltaA = prevA !== null ? Math.abs(((A - prevA) / prevA) * 100) : 0;
 
         let tr = document.createElement('tr');
-        if (deltaA >= 20) tr.classList.add('warning');
+
+        if (deltaA >= 20) {
+            tr.classList.add('warning');
+        }
 
         tr.innerHTML = `
             <td>${T}</td>
